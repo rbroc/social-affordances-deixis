@@ -1,0 +1,306 @@
+---
+title: "Deixis_CogSci"
+output: html_document
+---
+
+```{r ImportProcess, message = FALSE, include = FALSE}
+
+library(ggplot2)
+library(lme4)
+library(lmerTest)
+library(sjmisc)
+library(sjPlot)
+library(plotly)
+library(tidyr)
+library(dplyr)
+library(scales)
+library(readr)
+
+# Set theme
+custom_theme <- theme_grey() + 
+  theme(panel.background = element_rect(fill='white', color = 'black'), 
+        panel.grid.major = element_line(color = 'grey', linetype = 'dotted'), 
+        panel.grid.minor = element_line(color = 'grey', linetype = 'dotted'),
+        text=element_text(family="Andale Mono"),
+        strip.background =element_rect(fill="white")) 
+
+theme_set(custom_theme)
+
+
+# Set Working Directory
+setwd("~/Dropbox/DeixisExp/Deixis Exp 1/Analysis")
+
+# # Read in data
+# data <- data.frame(read_tsv('AllLogs.txt'))
+# 
+# #Condition as factor
+# data$id <- as.factor(data$id)
+# data$gender <- as.factor(data$gender)
+# data$handedness <- as.factor(data$handedness)
+# data$condition <- as.factor(data$condition)
+# data$order <- as.factor(data$order)
+# data$trial <- as.factor(data$trial)
+# 
+# # Correct bias in the data
+# indices <-which(data$relX == 0)
+# indices <- sample(indices, 1420)
+# data$response1[indices] <- data$response2[indices]
+# data$response2 <- ifelse(data$response1 == 'HER', 'DER', 'HER')
+# data$relY[indices] <- -data$relY[indices]
+# 
+# data$response1 <- as.factor(data$response1)
+# data$response2 <- as.factor(data$response2)
+# 
+# # Add more columns
+# data$relX <- as.numeric(data$relX)
+# data$relY <- as.numeric(data$relY)
+# data$relX_int <- as.numeric(factor(data$relX))
+# data$relY_int <- as.numeric(factor(data$relY))
+# 
+# write_tsv(data, 'AllLogs_resampled_2.txt')
+```
+
+
+```{r ReadProcessed, message = FALSE, include = FALSE}
+# Check dataset
+data <- data.frame(read_tsv('AllLogs_resampled_2.txt'))
+
+#Condition as factor
+data$id <- as.factor(data$id)
+data$gender <- as.factor(data$gender)
+data$handedness <- as.factor(data$handedness)
+data$condition <- as.factor(data$condition)
+data$order <- as.factor(data$order)
+data$trial <- as.factor(data$trial)
+data$relX <- as.factor(data$relX)
+data$relY <- as.factor(data$relY)
+data$response1 <- as.factor(data$response1)
+head(data)
+
+```
+
+
+### Distribution values predictors
+```{r AddCols, message = FALSE, echo = F}
+library(ggplot2)
+library(cowplot)
+
+# Set aesthetics for plots
+set_theme(geom.label.size = 3, 
+          axis.textsize = .9, 
+          axis.title.size = .9, 
+          theme.font = 'Andale Mono')
+
+# Check values
+hist_x <- ggplot(data,aes(x=relX_int)) + geom_histogram(aes(y=..density..), breaks=seq(0, 15, by = 1), fill = 'indianred1') + 
+  xlab('Distance between targets on X axis') + 
+  ylab('density') + 
+  ggtitle('Density RelX')
+
+hist_y <- ggplot(data,aes(x=relY_int)) + geom_histogram(aes(y=..density..), breaks=seq(0, 11, by = 1), fill = 'lightblue') +
+  xlab('Distance between targets on Y axis') + 
+  ylab('density') + 
+  ggtitle('Density RelY')
+  
+#plot_grid(hist_x, hist_y)
+print(hist_x)
+print(hist_y)
+
+rm(hist_x, hist_y)
+```
+
+
+### Frequency outcome variable
+``` {r RespDistribution, message = FALSE, echo = F}
+
+# Make sure we have enough responses per demonstrative form
+hist_her <- ggplot(data,aes(x=response1)) + geom_bar(stat = 'count', fill = 'lightblue', alpha = .8) +
+  geom_text(stat='count', aes(label = ..count..), vjust=-0.3, size=3.5) +
+  xlab('Response') + 
+  ylab('') +
+  ggtitle('Overall frequency of responses')
+
+print(hist_her)
+
+rm(hist_her)
+```
+
+
+### Distribution of response types across RelX and RelY
+``` {r PercHerX, message = FALSE, echo = F}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# Look at percentage "here" per relX
+agg_relX <- data %>% group_by(relX, response1) %>% summarize(count=n()) %>% mutate(prop = count / sum(count))
+agg_relY <- data %>% group_by(relY, response1) %>% summarize(count=n()) %>% mutate(prop = count / sum(count))
+
+# Plot values
+agg_relX_plot <- ggplot(agg_relX) + geom_bar(aes(x = relX, y = prop * 100, fill = response1), stat = 'identity') + geom_hline(yintercept = 50, linetype="dashed", color = 'black') + xlab("Distance between targets on X axis") + theme(legend.title = element_blank(), axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  scale_fill_manual(values = c("slategray2", "indianred1")) +
+  ggtitle("Proportion demonstratives RelX") + ylab("")
+
+# Indianred1
+
+agg_relY_plot <- ggplot(agg_relY) + geom_bar(aes(x = relY, y = prop * 100, fill = response1), stat = 'identity') + geom_hline(yintercept = 50, linetype="dashed", color = 'black') + xlab("Distance between targets on Y axis") + theme(legend.title = element_blank()) + scale_fill_manual(values = c("slategray2", "indianred1"), guide = FALSE) + ggtitle("Proportion demonstratives RelY") + ylab("")
+
+# Look at plots
+plot <- gridExtra::grid.arrange(agg_relY_plot, agg_relX_plot, nrow = 1)
+ggsave('Figure2.eps', plot, width = 15, height = 5)
+
+#print(agg_relX_plot)
+#print(agg_relY_plot)
+
+rm(agg_relX, agg_relY, agg_relX_plot, agg_relY_plot)
+```
+
+### Model effect relative position of referents
+```{r Contrast, message = FALSE}
+
+con_mat <- cbind(c(2, -1, -1), c(0, 1, -1))
+contrasts(data$condition) <- con_mat
+
+model1 <- glmer(response1 ~ relY + relX + relY:relX + (1 + relY|id), data = data, family = binomial("logit"),  glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 100000)))
+
+summary(model1)
+```
+
+### Effect of social context: Model summary
+```{r SummaryModel, echo = FALSE}
+
+model2 <- glmer(response1 ~ relY + relX + relY:relX + relY: condition + relX:condition + relY:relX:condition + (1+ relY|id), data = data, family = binomial("logit"), glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 100000)))
+
+anova(model1, model2)
+
+summary(model2)
+
+```
+
+### Diagnostic plots
+``` {r PlotEffects, message = FALSE, echo = FALSE}
+library(sjPlot)
+library(sjmisc)
+
+## Diagnostic plots
+sjp.glmer(model2, type = "fe.cor", title = "Correlation Fixed Effects")
+sjp.glmer(model2, type = "re.qq", title = "QQPlot random effects")
+```
+
+### All coefficients
+```{r PlotEffects2, echo = FALSE}
+
+plot_model(model2, type = "est", title = "All effects", show.values = TRUE, show.p = TRUE)
+```
+
+### Plot effects
+```{r ggpl}
+
+predProbs = predict(model2, type="response")
+
+relX <- ggplot(data, aes(relX, predProbs)) +
+stat_smooth(method="glm", formula=y~splines::ns(x,3),
+              alpha=0.2, size=1) + xlab("Distance between targets on x axis")+ ylab("Predicted probability of proximal demonstrative") + ggtitle("Effect RelX")
+
+int_x <- ggplot(data, aes(relX, predProbs, color=condition)) +
+stat_smooth(method="glm", formula=y~splines::ns(x,3),
+              alpha=0.2, size=0.7, aes(fill=condition), se = F) + xlab("Distance between targets on x axis")+ ylab("Predicted probability of proximal demonstrative") + ggtitle("Interaction RelX by Condition") + guides(color = F, fill = F)
+
+relY <- ggplot(data, aes(relY, predProbs)) +
+stat_smooth(method="glm", formula=y~splines::ns(x,3),alpha=0.2, size=1) + xlab("Distance between targets on y axis")+ ylab("Predicted probability of proximal demonstrative") + ggtitle("Effect RelY")
+
+int_y <- ggplot(data, aes(relY, predProbs, color=condition)) +
+stat_smooth(method="glm", formula=y~splines::ns(x,3),
+              alpha=0.2, size=0.7, aes(fill=condition), se = F) + xlab("Distance between targets on y axis")+ ylab("Predicted probability of proximal demonstrative") + ggtitle("Interaction RelY by Condition") + theme(axis.title.y = element_blank()) + guides(color = F, fill = F)
+
+relX
+int_x
+relY
+int_y
+
+```
+
+
+### Heatmaps (RelX / RelY)
+``` {r AggAll, message = FALSE, echo = FALSE}
+
+library(plotly)
+
+# Find percentage her per each coordinate
+agg_coord <- data %>% group_by(relX_int, relY_int, condition, response1) %>% summarize(count=n()) %>% mutate(prop = count / sum(count))
+
+# Also create maps per condition
+agg_coord_all <- subset(data.frame(agg_coord), response1 == 'HER')
+agg_coord_all$overall_prop <- agg_coord_all$count / sum(agg_coord_all$count)
+
+
+# Baseline
+agg_coord_bas <- subset(agg_coord, condition == 'baseline' & response1 == 'HER')[, c(1,2,5,6)]
+agg_coord_bas$overall_prop <- agg_coord_bas$count / sum(agg_coord_bas$count)
+# Complementary
+agg_coord_comp <- subset(agg_coord, condition == 'complementary' & response1 == 'HER')[, c(1,2,5,6)]
+agg_coord_comp$overall_prop <- agg_coord_comp$count / sum(agg_coord_comp$count)
+
+# Cooperative
+agg_coord_coop <- subset(agg_coord, condition == 'cooperative' & response1 == 'HER')[, c(1,2,5,6)]
+agg_coord_coop$overall_prop <- agg_coord_coop$count / sum(agg_coord_coop$count)
+
+prop_mat_all <- matrix(0, 11, 15)
+# Replace values
+for (i in 1:nrow(agg_coord_all)) {
+prop_mat_all[agg_coord_all$relY_int[i], agg_coord_all$relX_int[i]] <- agg_coord_all$prop[i]
+}
+
+# Make non-weighted heatmap for baseline
+prop_mat_bas <- matrix(0, 11, 15)
+# Replace values
+for (i in 1:nrow(agg_coord_bas)) {
+prop_mat_bas[agg_coord_bas$relY_int[i], agg_coord_bas$relX_int[i]] <- agg_coord_bas$prop[i]
+}
+
+# Same for complementary
+prop_mat_comp <- matrix(0, 11, 15)
+# Replace values
+for (i in 1:nrow(agg_coord_comp)) {
+prop_mat_comp[agg_coord_comp$relY_int[i], agg_coord_comp$relX_int[i]] <- agg_coord_comp$prop[i]
+}
+
+# And same for collaborative condition
+prop_mat_coop <- matrix(0, 11, 15)
+# Replace values
+for (i in 1:nrow(agg_coord_coop)) {
+prop_mat_coop[agg_coord_coop$relY_int[i], agg_coord_coop$relX_int[i]] <- agg_coord_coop$prop[i]
+}
+
+xax <- list(ticks = '', showticklabels = F, fixedrange = T)
+yax <- list(ticks = '', showticklabels = F, fixedrange = T)
+
+
+# Create all heatmaps
+#hmap_all <- plot_ly(z = - prop_mat_all, type = "heatmap", zsmooth = 'best', colors = "RdYlBu", showscale = F) %>% layout(xaxis = xax, yaxis = yax, title = 'All Conditions', font = list(family = 'andale mono')) #zmin = 0, zmax = 0.81
+hmap_bas <- plot_ly(z = - prop_mat_bas, colors = "RdYlBu", type = "heatmap", zsmooth = 'best', showscale = F) %>% layout(xaxis = xax, yaxis = yax, title = 'Baseline', font = list(family = 'andale mono'))
+#hmap_bas <- config(hmap_bas, displayModeBar = F)
+
+hmap_comp <- plot_ly(z = - prop_mat_comp,colors = 'RdYlBu', type = "heatmap",zsmooth = 'best', showscale = F) %>%  layout(xaxis = xax, yaxis = yax, title = 'Complementary',  font = list(family = 'andale mono'))
+#hmap_comp <- config(hmap_comp, displayModeBar = F)
+
+hmap_coll <- plot_ly(z = - prop_mat_coop,colors = "RdYlBu", type = "heatmap",zsmooth = 'best', showscale = F) %>%  layout(xaxis = xax, yaxis = yax, title = 'Collaborative', font = list(family = 'andale mono'))
+#hmap_coll <- config(hmap_coll, displayModeBar = F)
+
+#hmap_all
+hmap_bas$layout$height = 800
+hmap_bas$layout$width = 600
+hmap_comp$layout$height = 800
+hmap_comp$layout$width = 600
+hmap_coll$layout$height = 800
+hmap_coll$layout$width = 600
+
+hmap_bas
+hmap_comp
+hmap_coll
+
+```
+
+

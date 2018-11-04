@@ -1,0 +1,216 @@
+---
+title: "PowerSim_MoreTrials"
+output:
+  html_notebook: default
+  html: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Load functions and reminders 
+``` {r Load}
+
+source("./functions/SimData.R")
+source("./functions/CompPower.R")
+source("./functions/CompPower2.R")
+
+# Run power simulations for different samples sizes and plot power curve
+# REMEMBER codes for effects of interest:
+# RelY
+# RelY:RelX
+# RelY:RelX:Condition0 / Complementary condition vs Baseline
+# RelY:RelX:Condition1 / Collaborative condition vs Baseline
+```
+
+### Define Parameters and Initialize
+``` {r Init}
+
+# Choose sample sizes
+n_subj <- c(60, 80)
+
+# Initialize dataframes
+power_all_df <- data.frame('Power' = numeric(), 'N_Succ'= numeric(), 'N_Trials'= numeric(), 'Lower' = numeric(), 'Upper'= numeric())
+
+power_all_df_2 <-data.frame('Power' = numeric(), 'N_Succ'= numeric(), 'N_Trials'= numeric(), 'Lower' = numeric(), 'Upper'= numeric())
+
+```
+
+### Run Simulation for Effect Size 0.5
+```{r NoCluster}
+library(lme4)
+
+for (n in n_subj)
+{
+  
+  # Store values and add to dataframe
+  outcome <- power_all(J = n, K = 198, C = 3, beta = c(0, -0.5, -0.5, 0.5, 0.5), n.sims = 100)
+  power_all_df <- rbind(power_all_df, outcome)
+  
+}
+
+# Merge with number of subjects
+power_all_df <- cbind("N_subj" = n_subj, power_all_df)
+print(power_all_df)
+```
+
+### Plot power curve RelY
+``` {r Plot1}
+library(ggplot2)
+
+power_curve <- ggplot(power_all_df, aes(x=N_subj, y=Power_relY*100)) 
+
+power_curve + 
+  geom_errorbar(aes(ymin=power_all_df$Lower_relY * 100, ymax=power_all_df$Upper_relY * 100),  color = '#56B4E9') +
+  geom_line(size = 1) +
+  geom_hline(yintercept = 80, lty = 'dashed', color = 'red', size = 0.5) +
+  geom_point(shape = 21, size = 3, color = '#56B4E9', fill = 'white') +
+  ylim(0, 100) +
+  ylab('Power') +
+  xlab('Number of Subjects') 
+
+
+```
+
+### Plot power curve RelY:RelX
+``` {r Plot2}
+library(ggplot2)
+
+power_curve <- ggplot(power_all_df, aes(x=N_subj, y=Power_relYrelX*100)) 
+
+power_curve + 
+  geom_errorbar(aes(ymin=power_all_df$Lower_relYrelX * 100, ymax=power_all_df$Upper_relYrelX * 100),  color = '#56B4E9') +
+  geom_line(size = 1) +
+  geom_hline(yintercept = 80, lty = 'dashed', color = 'red', size = 0.5) +
+  geom_point(shape = 21, size = 3, color = '#56B4E9', fill = 'white') +
+  ylim(0, 100) +
+  ylab('Power') +
+  xlab('Number of Subjects') 
+
+
+```
+### Plot power curve relY:relX:CondComp
+``` {r Plot3}
+library(ggplot2)
+
+power_curve <- ggplot(power_all_df, aes(x=N_subj, y=Power_relYrelXcondcomp*100)) 
+
+power_curve + 
+  geom_errorbar(aes(ymin=power_all_df$Lower_relYrelXcondcomp * 100, ymax=power_all_df$Upper_relYrelXcondcomp * 100),  color = '#56B4E9') +
+  geom_line(size = 1) +
+  geom_hline(yintercept = 80, lty = 'dashed', color = 'red', size = 0.5) +
+  geom_point(shape = 21, size = 3, color = '#56B4E9', fill = 'white') +
+  ylim(0, 100) +
+  ylab('Power') +
+  xlab('Number of Subjects') 
+
+
+```
+
+### Plot power curve relY:relX:CondColl
+``` {r Plot4}
+library(ggplot2)
+
+power_curve <- ggplot(power_all_df, aes(x=N_subj, y=Power_relYrelXcondcoll*100)) 
+
+power_curve + 
+  geom_errorbar(aes(ymin=power_all_df$Lower_relYrelXcondcoll * 100, ymax=power_all_df$Upper_relYrelXcondcoll * 100),  color = '#56B4E9') +
+  geom_line(size = 1) +
+  geom_hline(yintercept = 80, lty = 'dashed', color = 'red', size = 0.5) +
+  geom_point(shape = 21, size = 3, color = '#56B4E9', fill = 'white') +
+  ylim(0, 100) +
+  ylab('Power') +
+  xlab('Number of Subjects') 
+
+```
+
+### Run simulation for effect size 0.7
+
+```{r NoCluster2}
+library(lme4)
+
+for (n in n_subj)
+{
+  
+  # Store values and add to dataframe
+  outcome <- power_all(J = n, K = 198, C = 3, beta = c(0, -0.7, -0.7, 0.7, 0.7), n.sims = 100)
+  power_all_df_2 <- rbind(power_all_df_2, outcome)
+  
+}
+
+# Merge with number of subjects
+power_all_df_2 <- cbind("N_subj" = n_subj, power_all_df_2)
+print(power_all_df_2)
+```
+
+
+### Plot power curve RelY
+``` {r Plot1_2}
+library(ggplot2)
+
+power_curve <- ggplot(power_all_df_2, aes(x=N_subj, y=Power_relY*100)) 
+
+power_curve + 
+  geom_errorbar(aes(ymin=power_all_df_2$Lower_relY * 100, ymax=power_all_df_2$Upper_relY * 100),  color = '#56B4E9') +
+  geom_line(size = 1) +
+  geom_hline(yintercept = 80, lty = 'dashed', color = 'red', size = 0.5) +
+  geom_point(shape = 21, size = 3, color = '#56B4E9', fill = 'white') +
+  ylim(0, 100) +
+  ylab('Power') +
+  xlab('Number of Subjects') 
+
+
+```
+
+### Plot power curve RelY:RelX
+``` {r Plot2_2}
+library(ggplot2)
+
+power_curve <- ggplot(power_all_df_2, aes(x=N_subj, y=Power_relYrelX*100)) 
+
+power_curve + 
+  geom_errorbar(aes(ymin=power_all_df_2$Lower_relYrelX * 100, ymax=power_all_df_2$Upper_relYrelX * 100),  color = '#56B4E9') +
+  geom_line(size = 1) +
+  geom_hline(yintercept = 80, lty = 'dashed', color = 'red', size = 0.5) +
+  geom_point(shape = 21, size = 3, color = '#56B4E9', fill = 'white') +
+  ylim(0, 100) +
+  ylab('Power') +
+  xlab('Number of Subjects') 
+
+
+```
+### Plot power curve relY:relX:CondComp
+``` {r Plot3_2}
+library(ggplot2)
+
+power_curve <- ggplot(power_all_df_2, aes(x=N_subj, y=Power_relYrelXcondcomp*100)) 
+
+power_curve + 
+  geom_errorbar(aes(ymin=power_all_df_2$Lower_relYrelXcondcomp * 100, ymax=power_all_df_2$Upper_relYrelXcondcomp * 100),  color = '#56B4E9') +
+  geom_line(size = 1) +
+  geom_hline(yintercept = 80, lty = 'dashed', color = 'red', size = 0.5) +
+  geom_point(shape = 21, size = 3, color = '#56B4E9', fill = 'white') +
+  ylim(0, 100) +
+  ylab('Power') +
+  xlab('Number of Subjects') 
+
+
+```
+
+### Plot power curve relY:relX:CondColl
+``` {r Plot4_2}
+library(ggplot2)
+
+power_curve <- ggplot(power_all_df_2, aes(x=N_subj, y=Power_relYrelXcondcoll*100)) 
+
+power_curve + 
+  geom_errorbar(aes(ymin=power_all_df_2$Lower_relYrelXcondcoll * 100, ymax=power_all_df_2$Upper_relYrelXcondcoll * 100),  color = '#56B4E9') +
+  geom_line(size = 1) +
+  geom_hline(yintercept = 80, lty = 'dashed', color = 'red', size = 0.5) +
+  geom_point(shape = 21, size = 3, color = '#56B4E9', fill = 'white') +
+  ylim(0, 100) +
+  ylab('Power') +
+  xlab('Number of Subjects') 
+
+```
